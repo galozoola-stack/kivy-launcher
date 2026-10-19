@@ -1,17 +1,15 @@
 name: Android APK (p4a)
 
 on:
-  :
   push:
     branches: [main]
-    
     paths:
       - "**/*.py"
       - "buildozer.spec"
       - ".github/workflows/android-p4a.yml"
   pull_request:
     branches: [main]
-    workflow_dispatch:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -59,3 +57,4 @@ jobs:
           name: kivy-code-editor-${{ matrix.arch }}
           path: bin/*.apk
           if-no-files-found: error
+          
