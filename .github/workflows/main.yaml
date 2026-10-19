@@ -35,29 +35,34 @@ jobs:
 
       - name: Build with Buildozer
         run: |
-          pip3 install --user --upgrade buildozer Cython virtualenv
-          export PATH=$PATH:~/.local/bin/
+          # 1. Fetch legacy 5.x packages 
+          curl -O http://launchpadlibrarian.net
+          curl -O http://launchpadlibrarian.net
+          sudo dpkg -i libtinfo5_6.4-2_amd64.deb
+          sudo dpkg -i libncurses5_6.4-2_amd64.deb
+          rm *.deb
+          
+          # 2. Complete system dependencies setup
+          sudo apt update 
+          sudo apt install -y git zip unzip openjdk-17-jdk python3-pip python3-venv autoconf libtool pkg-config zlib1g-dev libncursesw5-dev cmake libffi-dev libssl-dev 
+          
+          # 3. Create a pristine virtual environment to isolate the build tools
+          python3 -m venv venv
+          source venv/bin/activate
+          
+          # 4. Install build requirements cleanly inside the isolated environment
+          pip install --upgrade pip setuptools
+          pip install buildozer cython virtualenv
+          
+          # 5. Export build variables
           export APP_ANDROID_ACCEPT_SDK_LICENSE=1 
           export BUILDOZER_WARN_ON_ROOT=0
           
-          # 1. Manually fetch stable, valid copies of legacy 5.x packages 
-          curl -O http://launchpadlibrarian.net/648013231/libtinfo5_6.4-2_amd64.deb
-          curl -O http://launchpadlibrarian.net/648013227/libncurses5_6.4-2_amd64.deb
-          
-          # 2. Extract and install dependencies sequentially via dpkg
-          sudo dpkg -i libtinfo5_6.4-2_amd64.deb
-          sudo dpkg -i libncurses5_6.4-2_amd64.deb
-          
-          # 3. Clean up the downloaded deb files to keep things neat
-          rm *.deb
-          
-          # 4. Standard runtime update and installing the rest of the available modern tools
-          sudo apt update 
-          sudo apt install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncursesw5-dev cmake libffi-dev libssl-dev 
-          
-          # 5. Compile the Android application
+          # 6. Execute with the strict verbose flag enabled
           cd ${{ github.workspace }}
-          buildozer android debug
+          buildozer -v android debug
+
+          
 
 
 
