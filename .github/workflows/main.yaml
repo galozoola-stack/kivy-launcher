@@ -1,72 +1,71 @@
 name: CI
+
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
   schedule:
-    # every 1st day of the month at 10:30
-    - cron: '30 10 1 * *'
+    # 1st day of each month at 10:30 UTC
+    - cron: "30 10 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out repository
+        uses: actions/checkout@v4
 
-      # FIXED: Modern way to save step outputs
-      - name: Get Date
-        id: get-date
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install system dependencies
         run: |
-          echo "date=$(/bin/date -u '+%Y%m%d')" >> $GITHUB_OUTPUT
-        shell: bash
+          sudo apt-get update
+          sudo apt-get install -y \
+            git zip unzip openjdk-17-jdk \
+            autoconf libtool pkg-config \
+            zlib1g-dev libncurses5-dev libncursesw5-dev \
+            cmake libffi-dev libssl-dev
+
+      - name: Install Buildozer
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install buildozer cython virtualenv
 
       - name: Cache Buildozer global directory
         uses: actions/cache@v4
         with:
-          path: .buildozer_global
-          key: buildozer-global-${{ hashFiles('buildozer.spec') }}
+          path: ~/.buildozer
+          key: buildozer-global-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
+          restore-keys: |
+            buildozer-global-${{ runner.os }}-
 
-      - uses: actions/cache@v4
+      - name: Cache project build directory
+        uses: actions/cache@v4
         with:
           path: .buildozer
-          key: ${{ runner.os }}-${{ steps.get-date.outputs.date }}-${{ hashFiles('buildozer.spec') }}
+          key: buildozer-project-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}-${{ github.sha }}
+          restore-keys: |
+            buildozer-project-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}-
 
-      - name: Build with Buildozer
-        run: |
-          # 1. Fetch legacy 5.x packages securely from official Ubuntu main mirrors
-          wget -q http://security.ubuntu.com/ubuntu/pool/universe/n/ncurses/libtinfo5_6.3-2ubuntu0.1_amd64.deb
-          wget -q http://security.ubuntu.com/ubuntu/pool/universe/n/ncurses/libncurses5_6.3-2ubuntu0.1_amd64.deb
-          
-          # 2. Force local architecture deployment using standard flags
-          sudo dpkg -i libtinfo5_6.3-2ubuntu0.1_amd64.deb
-          sudo dpkg -i libncurses5_6.3-2ubuntu0.1_amd64.deb
-          rm *.deb
-          
-          # 3. Complete system dependencies setup
-          sudo apt update 
-          sudo apt install -y git zip unzip openjdk-17-jdk python3-pip python3-venv autoconf libtool pkg-config zlib1g-dev libncursesw5-dev cmake libffi-dev libssl-dev 
-          
-          # 4. Create a pristine virtual environment to isolate the build tools
-          python3 -m venv venv
-          source venv/bin/activate
-          
-          # 5. Install build requirements cleanly inside the isolated environment
-          pip install --upgrade pip setuptools
-          pip install buildozer cython virtualenv
-          
-          # 6. Export build variables
-          export APP_ANDROID_ACCEPT_SDK_LICENSE=1 
-          export BUILDOZER_WARN_ON_ROOT=0
-          
-          # 7. Execute with the strict verbose flag enabled
-          cd ${{ github.workspace }}
-          buildozer -v android debug
+      - name: Build APK
+        env:
+          APP_ANDROID_ACCEPT_SDK_LICENSE: "1"
+          BUILDOZER_WARN_ON_ROOT: "0"
+        run: buildozer -v android debug
 
-
-      - name: Upload artifacts
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: package
+          name: kivy-launcher-debug-apk
           path: bin/*.apk
+          if-no-files-found: error
