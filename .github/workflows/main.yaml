@@ -40,20 +40,25 @@ jobs:
           export APP_ANDROID_ACCEPT_SDK_LICENSE=1 
           export BUILDOZER_WARN_ON_ROOT=0
           
-          # 1. Fetch and manually install the missing legacy dependencies needed for the Android NDK
-          wget http://security.ubuntu.com/ubuntu/pool/universe/n/ncurses/libtinfo5_6.3-2ubuntu0.2_amd64.deb
-          wget http://ubuntu.com
-          sudo dpkg -i libtinfo5_6.3-2ubuntu0.2_amd64.deb
-          sudo dpkg -i libncurses5_6.3-2ubuntu0.2_amd64.deb
+          # 1. Manually fetch stable, valid copies of legacy 5.x packages 
+          curl -O http://launchpadlibrarian.net/648013231/libtinfo5_6.4-2_amd64.deb
+          curl -O http://launchpadlibrarian.net/648013227/libncurses5_6.4-2_amd64.deb
           
-          # 2. Run standard updates and install the remaining available packages
+          # 2. Extract and install dependencies sequentially via dpkg
+          sudo dpkg -i libtinfo5_6.4-2_amd64.deb
+          sudo dpkg -i libncurses5_6.4-2_amd64.deb
+          
+          # 3. Clean up the downloaded deb files to keep things neat
+          rm *.deb
+          
+          # 4. Standard runtime update and installing the rest of the available modern tools
           sudo apt update 
           sudo apt install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncursesw5-dev cmake libffi-dev libssl-dev 
           
-          # 3. Compile the application
+          # 5. Compile the Android application
           cd ${{ github.workspace }}
           buildozer android debug
-          
+
 
 
       - name: Upload artifacts
