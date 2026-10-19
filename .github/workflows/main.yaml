@@ -35,13 +35,13 @@ jobs:
 
       - name: Build with Buildozer
         run: |
-          # 1. Fetch legacy 5.x packages using explicit output names (-o)
-          curl -L "http://launchpadlibrarian.net" -o libtinfo5_6.4-2_amd64.deb
-          curl -L "http://launchpadlibrarian.net" -o libncurses5_6.4-2_amd64.deb
+          # 1. Fetch legacy 5.x packages securely from official Ubuntu main mirrors
+          wget -q http://security.ubuntu.com/ubuntu/pool/universe/n/ncurses/libtinfo5_6.3-2ubuntu0.1_amd64.deb
+          wget -q http://security.ubuntu.com/ubuntu/pool/universe/n/ncurses/libncurses5_6.3-2ubuntu0.1_amd64.deb
           
-          # 2. Install dependencies sequentially via dpkg
-          sudo dpkg -i libtinfo5_6.4-2_amd64.deb
-          sudo dpkg -i libncurses5_6.4-2_amd64.deb
+          # 2. Force local architecture deployment using standard flags
+          sudo dpkg -i libtinfo5_6.3-2ubuntu0.1_amd64.deb
+          sudo dpkg -i libncurses5_6.3-2ubuntu0.1_amd64.deb
           rm *.deb
           
           # 3. Complete system dependencies setup
@@ -63,9 +63,6 @@ jobs:
           # 7. Execute with the strict verbose flag enabled
           cd ${{ github.workspace }}
           buildozer -v android debug
-
-          
-
 
 
       - name: Upload artifacts
