@@ -1,15 +1,17 @@
 name: Android APK (p4a)
 
 on:
-  workflow_dispatch:
+  :
   push:
     branches: [main]
+    
     paths:
       - "**/*.py"
       - "buildozer.spec"
       - ".github/workflows/android-p4a.yml"
   pull_request:
     branches: [main]
+    workflow_dispatch:
 
 permissions:
   contents: read
